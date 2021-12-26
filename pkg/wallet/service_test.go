@@ -49,112 +49,112 @@ func TestService_FindAccountByID_notExist(t *testing.T) {
 
 //-----------------------------------------------
 
-func TestService_Reject_success(t *testing.T) {
-	svc := &Service{}
-	account,err:=svc.RegisterAccount("+992888844290")
-	if err!=nil{
-		fmt.Println(err)
-		return
-	}
+// func TestService_Reject_success(t *testing.T) {
+// 	svc := &Service{}
+// 	account,err:=svc.RegisterAccount("+992888844290")
+// 	if err!=nil{
+// 		fmt.Println(err)
+// 		return
+// 	}
 
-	err=svc.Deposit(account.ID,10)
-	if err!=nil{
-		switch err{
-		case ErrAmountMustBePositive:
-			fmt.Println("Сумма должна быть положительной")
-		case ErrAccountNotFound:
-			fmt.Println("Аккаунт пользователья не найден")	
-		}
-		return
-	}
+// 	err=svc.Deposit(account.ID,10)
+// 	if err!=nil{
+// 		switch err{
+// 		case ErrAmountMustBePositive:
+// 			fmt.Println("Сумма должна быть положительной")
+// 		case ErrAccountNotFound:
+// 			fmt.Println("Аккаунт пользователья не найден")	
+// 		}
+// 		return
+// 	}
 
-	payment,err:=svc.Pay(account.ID,5,"sadaqa")
-	if err!=nil{
-		switch err{
-		case ErrAmountMustBePositive:
-			fmt.Println("Сумма должна быть положительной")
-		case ErrAccountNotFound:
-			fmt.Println("Аккаунт пользователья не найден")	
-		}
-		return
-	}
+// 	payment,err:=svc.Pay(account.ID,5,"sadaqa")
+// 	if err!=nil{
+// 		switch err{
+// 		case ErrAmountMustBePositive:
+// 			fmt.Println("Сумма должна быть положительной")
+// 		case ErrAccountNotFound:
+// 			fmt.Println("Аккаунт пользователья не найден")	
+// 		}
+// 		return
+// 	}
 
-	err=svc.Reject(payment.ID)
-	if err!=nil{
-		switch err{
-		case ErrPaymentNotFound:
-			fmt.Println("платеж не найден")
-		}
-		return
-	}
+// 	err=svc.Reject(payment.ID)
+// 	if err!=nil{
+// 		switch err{
+// 		case ErrPaymentNotFound:
+// 			fmt.Println("платеж не найден")
+// 		}
+// 		return
+// 	}
 
-	acc,err:=svc.FindAccountByID(payment.AccountID)
-	if err!=nil{
-		switch err{
-		case ErrAccountNotFound:
-			fmt.Println("Аккаунт пользователья не найден")	
-		}
-		return
-	}
+// 	acc,err:=svc.FindAccountByID(payment.AccountID)
+// 	if err!=nil{
+// 		switch err{
+// 		case ErrAccountNotFound:
+// 			fmt.Println("Аккаунт пользователья не найден")	
+// 		}
+// 		return
+// 	}
 
-	if !reflect.DeepEqual(account,acc){
-		t.Errorf("invalid result, expected: %v, actual: %v",account,acc)
-	}
-}
+// 	if !reflect.DeepEqual(account,acc){
+// 		t.Errorf("invalid result, expected: %v, actual: %v",account,acc)
+// 	}
+// }
 
-//-----------------------------------------------
-func TestService_Reject_notFound(t *testing.T) {
-	svc := &Service{}
-	account,err:=svc.RegisterAccount("+992888844290")
-	if err!=nil{
-		fmt.Println(err)
-		return
-	}
+// //-----------------------------------------------
+// func TestService_Reject_notFound(t *testing.T) {
+// 	svc := &Service{}
+// 	account,err:=svc.RegisterAccount("+992888844290")
+// 	if err!=nil{
+// 		fmt.Println(err)
+// 		return
+// 	}
 
-	err=svc.Deposit(account.ID,10)
-	if err!=nil{
-		switch err{
-		case ErrAmountMustBePositive:
-			fmt.Println("Сумма должна быть положительной")
-		case ErrAccountNotFound:
-			fmt.Println("Аккаунт пользователья не найден")	
-		}
-		return
-	}
+// 	err=svc.Deposit(account.ID,10)
+// 	if err!=nil{
+// 		switch err{
+// 		case ErrAmountMustBePositive:
+// 			fmt.Println("Сумма должна быть положительной")
+// 		case ErrAccountNotFound:
+// 			fmt.Println("Аккаунт пользователья не найден")	
+// 		}
+// 		return
+// 	}
 
-	payment,err:=svc.Pay(account.ID,5,"sadaqa")
-	if err!=nil{
-		switch err{
-		case ErrAmountMustBePositive:
-			fmt.Println("Сумма должна быть положительной")
-		case ErrAccountNotFound:
-			fmt.Println("Аккаунт пользователья не найден")	
-		}
-		return
-	}
+// 	payment,err:=svc.Pay(account.ID,5,"sadaqa")
+// 	if err!=nil{
+// 		switch err{
+// 		case ErrAmountMustBePositive:
+// 			fmt.Println("Сумма должна быть положительной")
+// 		case ErrAccountNotFound:
+// 			fmt.Println("Аккаунт пользователья не найден")	
+// 		}
+// 		return
+// 	}
 	
-	errReject:=svc.Reject("helloWorld")
-	if err!=nil{
-		switch errReject{
-		case ErrPaymentNotFound:
-			fmt.Println("ErrPaymentNotFound")
-		case ErrAccountNotFound:
-			fmt.Println("Аккаунт пользователья не найден")	
-		}
-		return
-	}
+// 	errReject:=svc.Reject("helloWorld")
+// 	if err!=nil{
+// 		switch errReject{
+// 		case ErrPaymentNotFound:
+// 			fmt.Println("ErrPaymentNotFound")
+// 		case ErrAccountNotFound:
+// 			fmt.Println("Аккаунт пользователья не найден")	
+// 		}
+// 		return
+// 	}
 
-	payment,err=svc.FindPaymentByID(payment.ID)
-	if payment == nil {
-		fmt.Println("ErrPaymentNotFound")
-		return 
-	}
-	if err!=nil{
-		fmt.Println("ErrPaymentNotFound")
-		return 
-	}
+// 	payment,err=svc.FindPaymentByID(payment.ID)
+// 	if payment == nil {
+// 		fmt.Println("ErrPaymentNotFound")
+// 		return 
+// 	}
+// 	if err!=nil{
+// 		fmt.Println("ErrPaymentNotFound")
+// 		return 
+// 	}
 
-	if reflect.DeepEqual(payment.ID,err){
-		t.Errorf("invalid result, expected: %v, actual: %v",errReject,err)
-	}
-}
+// 	if reflect.DeepEqual(payment.ID,err){
+// 		t.Errorf("invalid result, expected: %v, actual: %v",errReject,err)
+// 	}
+// }
