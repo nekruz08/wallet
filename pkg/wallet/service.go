@@ -151,6 +151,7 @@ func (s *Service) Reject(paymentID string) error {
 	}
 	if err!=nil{
 		return ErrAccountNotFound
+
 	}
 	accaunt.Balance+=payment.Amount	
 	return nil

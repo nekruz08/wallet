@@ -49,7 +49,7 @@ func TestService_FindAccountByID_notExist(t *testing.T) {
 
 //-----------------------------------------------
 
-func TestSevice_Reject_success(t *testing.T) {
+func TestService_Reject_success(t *testing.T) {
 	svc := &Service{}
 	account,err:=svc.RegisterAccount("+992888844290")
 	if err!=nil{
@@ -82,10 +82,8 @@ func TestSevice_Reject_success(t *testing.T) {
 	err=svc.Reject(payment.ID)
 	if err!=nil{
 		switch err{
-		case ErrAmountMustBePositive:
-			fmt.Println("Сумма должна быть положительной")
-		case ErrAccountNotFound:
-			fmt.Println("Аккаунт пользователья не найден")	
+		case ErrPaymentNotFound:
+			fmt.Println("платеж не найден")
 		}
 		return
 	}
@@ -93,8 +91,6 @@ func TestSevice_Reject_success(t *testing.T) {
 	acc,err:=svc.FindAccountByID(payment.AccountID)
 	if err!=nil{
 		switch err{
-		case ErrAmountMustBePositive:
-			fmt.Println("Сумма должна быть положительной")
 		case ErrAccountNotFound:
 			fmt.Println("Аккаунт пользователья не найден")	
 		}
@@ -107,7 +103,7 @@ func TestSevice_Reject_success(t *testing.T) {
 }
 
 //-----------------------------------------------
-func TestSevice_Reject_notFound(t *testing.T) {
+func TestService_Reject_notFound(t *testing.T) {
 	svc := &Service{}
 	account,err:=svc.RegisterAccount("+992888844290")
 	if err!=nil{
@@ -148,18 +144,17 @@ func TestSevice_Reject_notFound(t *testing.T) {
 		return
 	}
 
-	_,err=svc.FindAccountByID(payment.AccountID)
+	payment,err=svc.FindPaymentByID(payment.ID)
+	if payment == nil {
+		fmt.Println("ErrPaymentNotFound")
+		return 
+	}
 	if err!=nil{
-		switch err{
-		case ErrAmountMustBePositive:
-			fmt.Println("Сумма должна быть положительной")
-		case ErrAccountNotFound:
-			fmt.Println("Аккаунт пользователья не найден")	
-		}
-		return
+		fmt.Println("ErrPaymentNotFound")
+		return 
 	}
 
-	if reflect.DeepEqual(errReject,err){
+	if reflect.DeepEqual(payment.ID,err){
 		t.Errorf("invalid result, expected: %v, actual: %v",errReject,err)
 	}
 }
