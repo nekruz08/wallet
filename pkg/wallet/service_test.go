@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
-
-	"github.com/nekruz08/wallet/pkg/types"
 )
 
 func TestService_FindAccountByID_success(t *testing.T) {
@@ -139,12 +137,9 @@ func TestSevice_Reject_notFound(t *testing.T) {
 		return
 	}
 	
-	wrongPayment:=&types.Payment{
-		ID: "helloWorld",
-	}
-	err=svc.Reject(wrongPayment.ID)
+	errReject:=svc.Reject("helloWorld")
 	if err!=nil{
-		switch err{
+		switch errReject{
 		case ErrPaymentNotFound:
 			fmt.Println("ErrPaymentNotFound")
 		case ErrAccountNotFound:
@@ -153,7 +148,7 @@ func TestSevice_Reject_notFound(t *testing.T) {
 		return
 	}
 
-	acc,err:=svc.FindAccountByID(payment.AccountID)
+	_,err=svc.FindAccountByID(payment.AccountID)
 	if err!=nil{
 		switch err{
 		case ErrAmountMustBePositive:
@@ -164,7 +159,7 @@ func TestSevice_Reject_notFound(t *testing.T) {
 		return
 	}
 
-	if reflect.DeepEqual(wrongPayment,acc){
-		t.Errorf("invalid result, expected: %v, actual: %v",wrongPayment,acc)
+	if reflect.DeepEqual(errReject,err){
+		t.Errorf("invalid result, expected: %v, actual: %v",errReject,err)
 	}
 }
