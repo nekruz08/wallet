@@ -101,19 +101,12 @@ func (s *Service) Pay(accountID int64,amount types.Money, category types.Payment
 //-----------------------------------------------
 
 func (s *Service) FindAccountByID(accountID int64) (*types.Account, error) {
-	var account *types.Account
-	for _, acc := range s.accounts {
-		if acc.ID == accountID {
-			account = acc
-			break
+	for _, account := range s.accounts {
+		if account.ID == accountID {
+			return account,nil
 		}
 	}
-
-	if account == nil {
-		return nil,ErrAccountNotFound
-	}
-
-	return account,nil
+	return nil,ErrAccountNotFound
 }
 
 //-----------------------------------------------new
@@ -200,26 +193,15 @@ func (s *testService) addAccount(data testAccount) (*types.Account, []*types.Pay
 }
 
 //-----------------------------------------------new
-func(s *testService)Repeat(paymentID string) (*types.Payment, error){
+func(s *Service)Repeat(paymentID string) (*types.Payment, error){
 	payment,err:=s.FindPaymentByID(paymentID)
 	if err != nil {
 		return nil,err
 	}
 
-	account,err:=s.FindAccountByID(payment.AccountID)
+	newPayment,err:=s.Pay(payment.AccountID,payment.Amount,payment.Category)
 	if err != nil {
 		return nil,err
 	}
-
-	account.Balance-=payment.Amount
-	newPaymentID:=uuid.New().String()
-	newPayment:=&types.Payment{
-		ID: newPaymentID,
-		AccountID: payment.AccountID,
-		Amount: payment.Amount,
-		Category: payment.Category,
-		Status: types.PaymentStatusInProgress,
-	}
-	s.payments=append(s.payments, newPayment)
-	return payment,nil
+	return newPayment,nil
 }
