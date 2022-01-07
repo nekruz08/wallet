@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/nekruz08/wallet/pkg/types"
@@ -115,46 +116,110 @@ func (s *Service) FindAccountByID(accountID int64) (*types.Account, error) {
 	return account,nil
 }
 
-//-----------------------------------------------
-func (s *Service)FindPaymentByID(paymentID string) (*types.Payment, error) {
-	var payment *types.Payment
-	for _, pay := range s.payments {
-		if pay.ID == paymentID {
-			payment = pay
-			break
+//-----------------------------------------------new
+
+func (s *Service) Reject(paymentID string) error {
+	payment,err:=s.FindPaymentByID(paymentID)
+	if err != nil {
+		return err
+	}
+
+	account,err:=s.FindAccountByID(payment.AccountID)
+	if err != nil {
+		return err
+	}
+
+	payment.Status=types.PaymentStatusFail
+	account.Balance+=payment.Amount
+	return nil
+}
+
+//-----------------------------------------------new
+
+func (s *Service) FindPaymentByID(paymentID string) (*types.Payment,error) {
+	for _, payment := range s.payments {
+		if payment.ID==paymentID{
+			return payment,nil
+		}
+	}
+	return nil, ErrPaymentNotFound
+}
+
+//-----------------------------------------------new
+type testService struct{
+	//(встраивание)
+	*Service					
+}
+
+//-----------------------------------------------new
+
+//(функция конструктор)
+func newTestService() *testService{	
+	return &testService{Service: &Service{}}
+}
+
+//-----------------------------------------------new
+
+type testAccount struct{
+	phone types.Phone
+	balance types.Money
+	payments []struct{
+		amount types.Money
+		category types.PaymentCategory
+	}
+}
+
+//-----------------------------------------------new
+
+
+func (s *testService) addAccount(data testAccount) (*types.Account, []*types.Payment,error) {
+	// регистрируем там пользователья
+	account, err:=s.RegisterAccount(data.phone)
+	if err != nil {
+		return nil, nil,fmt.Errorf("can't register account, error = %v", err)
+	}
+
+	// пополняем его счёт
+	err=s.Deposit(account.ID,data.balance)
+	if err != nil {
+		return nil, nil,fmt.Errorf("can't deposity account, error = %v", err)
+	}
+
+	// выполняем платежи
+	// можем создать слайс сразу нужной длины, поскольку знаем размер
+	payments:=make([]*types.Payment,len(data.payments))
+	for i, payment := range data.payments {
+		// тогда здесь работаем просто через index, а не через append
+		payments[i],err=s.Pay(account.ID,payment.amount,payment.category)
+		if err != nil {
+			return nil, nil, fmt.Errorf("can't make payment, error = %v",err)
 		}
 	}
 
-	if payment == nil {
-		return nil,ErrPaymentNotFound
+	return account, payments, nil
+}
+
+//-----------------------------------------------new
+func(s *testService)Repeat(paymentID string) (*types.Payment, error){
+	payment,err:=s.FindPaymentByID(paymentID)
+	if err != nil {
+		return nil,err
 	}
 
+	account,err:=s.FindAccountByID(payment.AccountID)
+	if err != nil {
+		return nil,err
+	}
+
+	account.Balance-=payment.Amount
+	newPaymentID:=uuid.New().String()
+	newPayment:=&types.Payment{
+		ID: newPaymentID,
+		AccountID: payment.AccountID,
+		Amount: payment.Amount,
+		Category: payment.Category,
+		Status: types.PaymentStatusInProgress,
+	}
+	s.payments=append(s.payments, newPayment)
 	return payment,nil
 }
-
-//-----------------------------------------------
-
-func (s *Service) Reject(paymentID string) error {
-	payment,err:=s.FindPaymentByID(paymentID)//////////////////
-	if payment == nil {
-		return ErrPaymentNotFound
-	}
-	if err!=nil{
-		return ErrPaymentNotFound
-	}
-
-	payment.Status=types.PaymentStatusFail///////////////
-	
-	accaunt,err:=s.FindAccountByID(payment.AccountID)//////
-	if accaunt == nil {
-		return ErrAccountNotFound
-	}
-	if err!=nil{
-		return ErrAccountNotFound
-
-	}
-	accaunt.Balance+=payment.Amount	
-	return nil///////////////
-}
-
-//-----------------------------------------------
