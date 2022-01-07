@@ -1,160 +1,135 @@
 package wallet
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/google/uuid"
+	"github.com/nekruz08/wallet/pkg/types"
 )
 
-func TestService_FindAccountByID_success(t *testing.T) {
-	svc := &Service{}
-	account,err:=svc.RegisterAccount("+992888844290")
-	if err!=nil{
-		fmt.Println(err)
+var defaultTestAccount = testAccount{
+	phone: "+992888844290",
+	balance: 10_000_00,
+	payments: []struct{
+		amount types.Money
+		category types.PaymentCategory
+	}{
+		{amount:1_000_00,category:"auto"},
+	},
+}
+
+//-----------------------------------------------new
+func TestService_FindPaymentByID_success(t *testing.T) {
+	// создаём сервис
+	s:=newTestService()
+	_,payments,err:=s.addAccount(defaultTestAccount)
+	if err != nil {
+		t.Error(err)
+		return	
+	}
+
+	// попробуем найти платеж
+	payment:=payments[0]
+	got, err:=s.FindPaymentByID(payment.ID)
+	if err != nil {
+		t.Errorf("FindPaymentByID(): error = %v",err)
 		return
 	}
 
-	account1,err:=svc.FindAccountByID(account.ID)
-	if err!=nil{
-		switch err{
-		case ErrAccountNotFound:
-			fmt.Println("Аккаунт пользователья не найден")	
-		}
+	// сравниваем платежи
+	if !reflect.DeepEqual(payment, got){
+		t.Errorf("FindPaymentByID(): wrong payment returned = %v",err)
 		return
-	}
-
-	if !reflect.DeepEqual(account,account1){
-		t.Errorf("invalid result, expected: %v, actual: %v",account,account1)
 	}
 }
 
-//-----------------------------------------------
 
-func TestService_FindAccountByID_notExist(t *testing.T) {
-	svc := &Service{}
-	account:=int64(2)
-	account1,err:=svc.FindAccountByID(account)
-	if err!=nil{
-		switch err{
-		case ErrAccountNotFound:
-			fmt.Println("Аккаунт пользователья не найден")	
-		}
+//-----------------------------------------------new
+
+func TestService_FindPaymentByID_fail(t *testing.T) {
+	// создаем сервис
+	s:=newTestService()
+	_,_,err:=s.addAccount(defaultTestAccount)
+	if err != nil {
+		t.Error(err)
 		return
 	}
 
-	if reflect.DeepEqual(account,account1){
-		t.Errorf("invalid result, expected: %v, actual: %v",account,account1)
+	// пробуем найти несуществующий платеж
+	_, err = s.FindPaymentByID(uuid.New().String())
+	if err == nil {
+		t.Error("FindPaymentByID(): must return error, returned nil")
+		return
+	}
+
+	if err != ErrPaymentNotFound {
+		t.Errorf("FindPaymentByID(): must return ErrPaymentNotFound, returned = %v", err)
+		return
 	}
 }
 
-//-----------------------------------------------
+//-----------------------------------------------new
 
 func TestService_Reject_success(t *testing.T) {
-	svc := &Service{}
-	account,err:=svc.RegisterAccount("+992888844290")
-	if err!=nil{
-		fmt.Println(err)
+	// создаем сервис
+	s:=newTestService()
+	_, payments, err:=s.addAccount(defaultTestAccount)
+	if err != nil {
+		t.Error(err)
 		return
 	}
 
-	err=svc.Deposit(account.ID,10)
-	if err!=nil{
-		switch err{
-		case ErrAmountMustBePositive:
-			fmt.Println("Сумма должна быть положительной")
-		case ErrAccountNotFound:
-			fmt.Println("Аккаунт пользователья не найден")	
-		}
+	// пробуем отменить платеж
+	payment:=payments[0]
+	err=s.Reject(payment.ID)
+	if err != nil {
+		t.Errorf("Reject(): error = %v", err)
 		return
 	}
 
-	payment,err:=svc.Pay(account.ID,5,"sadaqa")
-	if err!=nil{
-		switch err{
-		case ErrAmountMustBePositive:
-			fmt.Println("Сумма должна быть положительной")
-		case ErrAccountNotFound:
-			fmt.Println("Аккаунт пользователья не найден")	
-		}
+	savedPayment, err:=s.FindPaymentByID(payment.ID)
+	if err != nil {
+		t.Errorf("Reject(): can't find payment by id, error = %v", err)
+		return
+	}
+	if savedPayment.Status!=types.PaymentStatusFail{
+		t.Errorf("Reject(): status didn't changd, payment %v", savedPayment)
 		return
 	}
 
-	err=svc.Reject(payment.ID)
-	if err!=nil{
-		switch err{
-		case ErrPaymentNotFound:
-			fmt.Println("платеж не найден")
-		}
+	savedAccount, err:=s.FindAccountByID(payment.AccountID)
+	if err != nil {
+		t.Errorf("Reject(): can't find account by id, error = %v", err)
 		return
 	}
-
-	acc,err:=svc.FindAccountByID(payment.AccountID)
-	if err!=nil{
-		switch err{
-		case ErrAccountNotFound:
-			fmt.Println("Аккаунт пользователья не найден")	
-		}
-		return
-	}
-
-	if !reflect.DeepEqual(account,acc){
-		t.Errorf("invalid result, expected: %v, actual: %v",account,acc)
+	if savedAccount.Balance!=defaultTestAccount.balance{
+		t.Errorf("Reject(): balance didn't changed, account = %v", savedAccount)
+		return	
 	}
 }
 
 //-----------------------------------------------
-func TestService_Reject_notFound(t *testing.T) {
-	svc := &Service{}
-	account,err:=svc.RegisterAccount("+992888844290")
-	if err!=nil{
-		fmt.Println(err)
+func TestService_Repeat_success(t *testing.T) {
+	// создаем сервис
+	s:=newTestService()
+	_, payments, err:=s.addAccount(defaultTestAccount)
+	if err != nil {
+		t.Error(err)
 		return
 	}
 
-	err=svc.Deposit(account.ID,10)
-	if err!=nil{
-		switch err{
-		case ErrAmountMustBePositive:
-			fmt.Println("Сумма должна быть положительной")
-		case ErrAccountNotFound:
-			fmt.Println("Аккаунт пользователья не найден")	
-		}
+	// пробуем повторит платеж
+	payment:=payments[0]
+	newPayment,err:=s.Repeat(payment.ID)
+	if err != nil {
+		t.Errorf("Repeat(): error = %v", err)
 		return
 	}
 
-	payment,err:=svc.Pay(account.ID,5,"sadaqa")
-	if err!=nil{
-		switch err{
-		case ErrAmountMustBePositive:
-			fmt.Println("Сумма должна быть положительной")
-		case ErrAccountNotFound:
-			fmt.Println("Аккаунт пользователья не найден")	
-		}
+	// сравниваем платежи
+	if !reflect.DeepEqual(payment.AccountID, newPayment.AccountID){
+		t.Error("FindPaymentByID(): payment.AccountID and newPayment.AccountID should not be equal")
 		return
-	}
-	
-	errReject:=svc.Reject("helloWorld")
-	if err!=nil{
-		switch errReject{
-		case ErrPaymentNotFound:
-			fmt.Println("ErrPaymentNotFound")
-		case ErrAccountNotFound:
-			fmt.Println("Аккаунт пользователья не найден")	
-		}
-		return
-	}
-
-	payment,err=svc.FindPaymentByID(payment.ID)
-	if payment == nil {
-		fmt.Println("ErrPaymentNotFound")
-		return 
-	}
-	if err!=nil{
-		fmt.Println("ErrPaymentNotFound")
-		return 
-	}
-
-	if reflect.DeepEqual(payment.ID,err){
-		t.Errorf("invalid result, expected: %v, actual: %v",errReject,err)
 	}
 }
